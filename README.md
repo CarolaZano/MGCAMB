@@ -1,5 +1,8 @@
 MGCAMB 
 ===========
+
+forked from: https://github.com/sfu-cosmo/MGCAMB
+
 ## Modified Growth with CAMB
 This is the official repository for the MGCAMB patch. Below is an introduction to the code and the instructions to install and run the code. Please note this repository of MGCAMB is always updated compatibly with the latest version of [CAMB](https://github.com/cmbant/CAMB), and the former version (MGCAMB v4.0) is provided in [MGCAMB_v4](https://github.com/sfu-cosmo/MGCAMB_v4), which is compatible with CAMB v1.3.5. 
 
