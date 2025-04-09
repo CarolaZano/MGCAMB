@@ -218,6 +218,9 @@
         real(dl):: Rnot= 1.d0
         real(dl):: sss = 0
 		real(dl):: Linder_gamma = 0.545
+        ! CAROLA
+        real(dl):: alphaC = 0.0
+        ! CAROLA
         real(dl):: B0 = 1.d-3
         real(dl):: beta_star  = 1.0
         real(dl):: a_star = 0.5 

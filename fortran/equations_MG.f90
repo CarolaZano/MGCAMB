@@ -18,10 +18,13 @@
 	!< MGCAMB MOD END
 
 	!> MGCAMB MOD START: modifying the background
-	if ( MG_flag == 0 ) then
+	if ( MG_flag == 0) then
     	call this%CP%DarkEnergy%BackgroundDensityAndPressure(this%grhov, a, grhov_t)
 		grhoa2 = this%grho_no_de(a) +  grhov_t * a**2
-	else if( MG_flag /= 0 ) then !< MGCAMB modifies the background as well
+    else if (MG_flag == 7) then
+        call this%CP%DarkEnergy%BackgroundDensityAndPressure(this%grhov, a, grhov_t)
+        grhoa2 = this%grho_no_de(a) +  grhov_t * a**2
+	else if( MG_flag /= 0 .and. MG_flag /= 7) then !< MGCAMB modifies the background as well
 		call MGCAMB_DarkEnergy( a, mgcamb_par_cache, mgcamb_cache )
 		grhoa2 = this%grho_no_de(a) +  mgcamb_cache%grhov_t * a**2
 	end if
@@ -610,8 +613,8 @@
 
     !Dark energy
     !> MGCAMB MOD START: 
-    if ((.not. CP%DarkEnergy%is_cosmological_constant .and. MG_flag == 0) &
-        .or. (.not. MGDE_const .and. MG_flag /= 0 .and. MGDE_pert)) then
+    if ((.not. CP%DarkEnergy%is_cosmological_constant .and. (MG_flag == 0 .or. MG_flag == 7) ) &
+        .or. (.not. MGDE_const .and. MG_flag /= 0 .and. MG_flag /= 7 .and. MGDE_pert)) then
         EV%w_ix = neq + 1
         neq = neq + CP%DarkEnergy%num_perturb_equations
         maxeq = maxeq + CP%DarkEnergy%num_perturb_equations
@@ -2330,7 +2333,8 @@
     grhog_t=State%grhog/a2
 
     !> MGCAMB MOD START: computing DE density in MGCAMB
-    if ( MG_flag == 0 ) then !< default CAMB
+    ! CAROLA
+    if ( MG_flag == 0 .or. MG_flag ==7) then !< default CAMB
         if (EV%is_cosmological_constant) then
             grhov_t = State%grhov * a2
             w_dark_energy_t = -1_dl
@@ -2356,7 +2360,7 @@
 
     !> MGCAMB MOD START: switch MG on according to the model (in model 7 GRtrans is replaced by a_star)
     tempmodel = 0
-    if ( MG_flag /= 0 .and. a .ge. GRtrans ) then
+    if ( MG_flag /= 0 .and. MG_flag /= 7 .and. a .ge. GRtrans ) then
         tempmodel = MG_flag
     end if
     !< MGCAMB MOD END
@@ -2384,7 +2388,7 @@
     if (State%flat) then
         adotoa=sqrt(grho/3)
         cothxor=1._dl/tau
-    else if ( MG_flag == 0 ) then
+    else if ( MG_flag == 0 .or. MG_flag == 7) then
         adotoa=sqrt((grho+State%grhok)/3._dl)
         cothxor=1._dl/State%tanfunc(tau/State%curvature_radius)/State%curvature_radius
     else
@@ -2455,7 +2459,7 @@
     pb43=4._dl/3*photbar
 
     !> MGCMAB MOD START: perturb DE only in default CAMB
-    if (.not. EV%is_cosmological_constant .and. MG_flag == 0)  then
+    if (.not. EV%is_cosmological_constant .and. (MG_flag == 0 .or. MG_flag == 7))  then
         call State%CP%DarkEnergy%PerturbedStressEnergy(dgrho_de, dgq_de, &
             a, dgq, dgrho, grho, grhov_t, w_dark_energy_t, gpres_noDE, etak, &
             adotoa, k, EV%Kf(1), ay, ayprime, EV%w_ix)
@@ -2463,7 +2467,7 @@
         dgq = dgq + dgq_de
     end if
 
-    if (.not. MGDE_const .and. MG_flag /= 0 .and. MGDE_pert)  then
+    if (.not. MGDE_const .and. MG_flag /= 0 .and. MG_flag /= 7 .and. MGDE_pert)  then
         call State%CP%DarkEnergy%PerturbedStressEnergy(dgrho_de, dgq_de, &
             a, dgq, dgrho, grho, grhov_t, w_MGDE, gpres_noDE, etak, &
             adotoa, k, 1.d0, ay, ayprime, EV%w_ix)
@@ -2694,10 +2698,10 @@
     !< MGCAMB MOD END
 
     !> MGCAMB MOD START: DE perturbed only if not MG
-    if (.not. EV%is_cosmological_constant .and. MG_flag == 0 ) &
+    if (.not. EV%is_cosmological_constant .and. (MG_flag == 0 .or. MG_flag ==7)) &
         call State%CP%DarkEnergy%PerturbationEvolve(ayprime, w_dark_energy_t, &
         EV%w_ix, a, adotoa, k, z, ay)
-    if (.not. MGDE_const .and. MG_flag /= 0 .and. MGDE_pert) &
+    if (.not. MGDE_const .and. MG_flag /= 0 .and. MG_flag /= 7 .and. MGDE_pert) &
         call State%CP%DarkEnergy%PerturbationEvolve(ayprime, w_MGDE, &
         EV%w_ix, a, adotoa, k, z, ay)
      !< MGCAMB MOD END
@@ -2761,7 +2765,7 @@
     if (EV%TightCoupling) then
         !  ddota/a
         !> MGCAMB MOD START
-        if ( MG_flag == 0 ) then
+        if ( MG_flag == 0 .or. MG_flag == 7) then
             gpres = gpres_noDE + w_dark_energy_t*grhov_t
             adotdota=(adotoa*adotoa-gpres)/2
         else
@@ -3110,8 +3114,8 @@
             end if
         end if
 		!>MGCAMB MOD START
-        if ((EV%is_cosmological_constant .and. MG_flag == 0) &
-            .or. ( MGDE_const .and. MG_flag /= 0 .and. MGDE_pert)) then
+        if ((EV%is_cosmological_constant .and. (MG_flag == 0 .or. MG_flag == 7)) &
+            .or. ( MGDE_const .and. MG_flag /= 0 .and. MG_flag /= 7 .and. MGDE_pert)) then
             dgrho_de=0
             dgq_de=0
         end if
@@ -3127,18 +3131,18 @@
         end if
 
         !> MGCAMB MOD START: modifying hte expansion history
-        if ( MG_flag == 0 ) then
+        if ( MG_flag == 0 .or. MG_flag == 7 ) then
             gpres = gpres_noDE + w_dark_energy_t*grhov_t
         else
             gpres= gpres_noDE  + mgcamb_cache%gpresv_t
         end if
 
-		if(MG_flag == 0 ) then
+		if(MG_flag == 0 .or. MG_flag == 7 ) then
             diff_rhopi = pidot_sum - (4*dgpi+ dgpi_diff)*adotoa + &
                 State%CP%DarkEnergy%diff_rhopi_Add_Term(dgrho_de, dgq_de, grho, &
                 gpres, w_dark_energy_t, State%grhok, adotoa, &
                 EV%kf(1), k, grhov_t, z, k2, ayprime, ay, EV%w_ix)
-		else if(MG_flag /= 0 .and. (.not. MGDE_const) .and. MGDE_pert) then
+		else if(MG_flag /= 0 .and. MG_flag /= 7 .and. (.not. MGDE_const) .and. MGDE_pert) then
 			diff_rhopi = pidot_sum - (4*dgpi+ dgpi_diff)*adotoa + &
 				State%CP%DarkEnergy%diff_rhopi_Add_Term(dgrho_de, dgq_de, grho, &
 				gpres, w_MGDE, State%grhok, adotoa, &
@@ -3331,7 +3335,7 @@
                     call c_f_procpointer(CP%CustomSources%c_source_func,custom_sources_func)
 
                     !>MGCAMB MOD START
-					if(MG_flag==0) then
+					if(MG_flag==0 .or. MG_flag == 7) then
                         call custom_sources_func(EV%CustomSources, tau, a, adotoa, grho, gpres,w_dark_energy_t, cs2_de, &
                             grhob_t,grhor_t,grhoc_t,grhog_t,grhov_t,grhonu_t, &
                             k, etak, ayprime(ix_etak), phi, phidot, sigma, sigmadot, &

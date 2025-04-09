@@ -24,7 +24,7 @@
     !     for restrictions on the modification and distribution of this software.
 
     module results
-    use constants, only : const_pi, const_twopi
+    use constants, only : const_pi, const_twopi, kappa
     use MiscUtils
     use RangeUtils
     use StringUtils
@@ -265,6 +265,7 @@
     procedure :: SetParams => CAMBdata_SetParams
     procedure :: Free => CAMBdata_Free
     procedure :: grho_no_de
+    procedure :: grho_no_de_4DEGB
     procedure :: GetReionizationOptDepth
     procedure :: rofChi
     procedure :: cosfunc
@@ -440,7 +441,6 @@
         !H0 is in km/s/Mpc
 
         this%grhocrit = 3*this%CP%h0**2/c**2*1000**2 !3*h0^2/c^2 (=8*pi*G*rho_crit/c^2)
-
         this%grhog = kappa/c**2*4*sigma_boltz/c**3*this%CP%tcmb**4*Mpc**2 !8*pi*G/c^2*4*sigma_B/c^3 T^4
         ! grhog=1.4952d-13*tcmb**4
         this%grhor = 7._dl/8*(4._dl/11)**(4._dl/3)*this%grhog !7/8*(4/11)^(4/3)*grhog (per neutrino species)
@@ -448,7 +448,6 @@
 
         !correction for fractional number of neutrinos, e.g. 3.04 to give slightly higher T_nu hence rhor
         !for massive Nu_mass_degeneracies parameters account for heating from grhor
-
         this%grhornomass=this%grhor*nu_massless_degeneracy
         this%grhormass=0
         do nu_i = 1, this%CP%Nu_mass_eigenstates
@@ -478,7 +477,8 @@
         if (MG_flag == 1 .or. MG_flag == 5 .or. MG_flag == 6) then
             call reconstruction_arr
         end if
-        if(MG_flag /= 0) then
+        ! CAROLA
+        if(MG_flag /= 0 .and. MG_flag /= 7) then
             call MGCAMB_DE_perturb
         end if
 		!> MGCAMB MOD END
@@ -1254,6 +1254,27 @@
     end if
 
     end function grho_no_de
+
+    ! CAROLA - Modifying the background for 4DEGB 
+    function grho_no_de_4DEGB(this, a) result(grhoa2)
+        !  Return 8*pi*G*rho_no_de*a**4 where rho_no_de includes everything except dark energy.
+        class(CAMBdata) :: this
+        real(dl), intent(in) :: a
+        real(dl) grhoa2, rhonu
+        integer nu_i
+    
+        grhoa2 = this%grhok * a**2 + (this%grhoc + this%grhob) * a + (this%grhog + this%grhocrit*kappa*this%CP%alphaC) + this%grhornomass
+    
+        if (this%CP%Num_Nu_massive /= 0) then
+            !Get massive neutrino density relative to massless
+            do nu_i = 1, this%CP%nu_mass_eigenstates
+                call ThermalNuBack%rho(a * this%nu_masses(nu_i), rhonu)
+                grhoa2 = grhoa2 + rhonu * this%grhormass(nu_i)
+            end do
+        end if
+    
+        end function grho_no_de_4DEGB
+    ! CAROLA
 
     function GetReionizationOptDepth(this)
     class(CAMBdata) :: this

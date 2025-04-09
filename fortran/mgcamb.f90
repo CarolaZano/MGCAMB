@@ -13,6 +13,10 @@ module MGCAMB
     integer :: muSigma_flag
     integer :: CDM_flag
 
+    ! CAROLA
+    real(dl) :: alphaC
+    ! CAROLA
+
     ! DE model flag
     integer :: DE_model
 
@@ -2021,6 +2025,11 @@ contains
 
         GRtrans = CP%GRtrans                
 
+        ! CAROLA 
+        !4DEGB
+        alphaC = CP%alphaC
+        ! CAROLA
+
         ! BZ parametrization (and QS f(R))
         B1 =  CP%B1
         B2 =  CP%B2
@@ -2116,7 +2125,7 @@ contains
 
 		X_arr(2*nnode) = mgcamb_par_cache%omegav
 
-		if ( MG_flag /= 0 ) then
+		if ( MG_flag /= 0 .and. MG_flag /= 7 ) then
 			if ( MG_flag == 1 ) then
 				if( pure_MG_flag /= 1 .and. pure_MG_flag /= 2 .and. pure_MG_flag /= 3) then
 					stop 'Choose pure_MG_flag properly!'
@@ -2216,6 +2225,14 @@ contains
 				if ( DE_model /=1 .and. DE_model /= 2 .and. DE_model /= 3) then
 					stop 'Choose DE_model properly!'
 				end if
+            ! CAROLA
+            else if ( MG_flag == 7 ) then
+                if (alphaC == 0._dl) then
+                    write(*,*) 'alphaC = 0.0, no MG'
+                else
+                    write(*,*) 'alphaC = ', alphaC
+                end if
+            ! CAROLA
 			else
 				stop 'Choose MG_flag properly!'
 			end if
@@ -2236,7 +2253,7 @@ contains
         ! 1. MG_flag
         MG_flag = Ini%Read_Int('MG_flag', 0) 
  
-        if ( MG_flag /= 0 ) then
+        if ( MG_flag /= 0 .and. MG_flag /= 7 ) then
             call print_MGCAMB_header  !! call the printing subroutine down below
             write(*,*)
             write(*,*) 'MG_flag:', MG_flag

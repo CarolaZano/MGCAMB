@@ -57,7 +57,7 @@
     class(TCAMBdata), intent(in), target :: State
 
     call this%TDarkEnergyEqnOfState%Init(State)
-	if(MG_flag==0) then
+	if(MG_flag==0 .or. MG_flag==7) then
         if (this%is_cosmological_constant) then
             this%num_perturb_equations = 0
         else
