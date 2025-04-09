@@ -24,7 +24,7 @@
     !     for restrictions on the modification and distribution of this software.
 
     module results
-    use constants, only : const_pi, const_twopi, kappa
+    use constants, only : const_pi, const_twopi
     use MiscUtils
     use RangeUtils
     use StringUtils
@@ -832,7 +832,8 @@
 
     a = 1/(1+z)
     CAMBdata_Hofz = 1/(a**2*dtauda(this,a))
-
+    
+    write(*,*)'Hofz is being reached in new version'
     end function CAMBdata_Hofz
 
     subroutine CAMBdata_HofzArr(this, arr, z, n)
@@ -849,7 +850,7 @@
         a = 1/(1+z(i))
         arr(i) = 1/(a**2*dtauda(this,a))
     end do
-
+    write(*,*)'Hofzarr is being reached in new version'
     end subroutine CAMBdata_HofzArr
 
     real(dl) function CAMBdata_sound_horizon(this, z)
@@ -1263,8 +1264,9 @@
         real(dl) grhoa2, rhonu
         integer nu_i
     
-        grhoa2 = this%grhok * a**2 + (this%grhoc + this%grhob) * a + (this%grhog + this%grhocrit*kappa*this%CP%alphaC) + this%grhornomass
-    
+        grhoa2 = this%grhok * a**2 + (this%grhoc + this%grhob) * a + (this%grhog + this%grhocrit*this%CP%alphaC) + this%grhornomass
+        write(*,*) 'grhog, alpha term', this%grhog , this%grhocrit*this%CP%alphaC
+        
         if (this%CP%Num_Nu_massive /= 0) then
             !Get massive neutrino density relative to massless
             do nu_i = 1, this%CP%nu_mass_eigenstates

@@ -68,7 +68,7 @@
     private
 
     logical :: WantLateTime = .false. !if lensing or redshift windows
-
+    
     logical ExactClosedSum  !do all nu values in sum for Cls for Omega_k>0.1
 
     !Variables for integrating the sources with the bessel functions for each wavenumber

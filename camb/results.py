@@ -1489,8 +1489,10 @@ class CAMBdata(F2003Class):
             z = np.array(z, dtype=np.float64)
             arr = np.empty(z.shape)
             self.f_HofzArr(arr, z, byref(c_int(z.shape[0])))
+            print("this version gets to the python funct(arr)")
             return arr
         else:
+            print("this version gets to the python funct(scalar)")
             return self.f_Hofz(byref(c_double(z)))
 
     def hubble_parameter(self, z):
