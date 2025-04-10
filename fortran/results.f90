@@ -833,7 +833,6 @@
     a = 1/(1+z)
     CAMBdata_Hofz = 1/(a**2*dtauda(this,a))
     
-    write(*,*)'Hofz is being reached in new version'
     end function CAMBdata_Hofz
 
     subroutine CAMBdata_HofzArr(this, arr, z, n)
@@ -850,7 +849,6 @@
         a = 1/(1+z(i))
         arr(i) = 1/(a**2*dtauda(this,a))
     end do
-    write(*,*)'Hofzarr is being reached in new version'
     end subroutine CAMBdata_HofzArr
 
     real(dl) function CAMBdata_sound_horizon(this, z)
@@ -1265,6 +1263,8 @@
         integer nu_i
     
         grhoa2 = this%grhok * a**2 + (this%grhoc + this%grhob) * a + (this%grhog + this%grhocrit*this%CP%alphaC) + this%grhornomass
+        write(*,*) 'value Neff equiv', this%CP%alphaC/(this%grhor/this%grhocrit)
+        write(*,*) 'value grhor, value Omegar', this%grhor, this%grhor/this%grhocrit
         write(*,*) 'grhog, alpha term', this%grhog , this%grhocrit*this%CP%alphaC
         
         if (this%CP%Num_Nu_massive /= 0) then

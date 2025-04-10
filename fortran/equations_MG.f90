@@ -25,7 +25,7 @@
     else if (MG_flag == 7) then
         call this%CP%DarkEnergy%BackgroundDensityAndPressure(this%grhov, a, grhov_t)
         grhoa2 = this%grho_no_de_4DEGB(a) +  grhov_t * a**2
-        write(*,*)'4degb is being calculated in this version'
+        write(*,*)'Im doing 4DEGB'
 	else if( MG_flag /= 0 .and. MG_flag /= 7) then !< MGCAMB modifies the background as well
 		call MGCAMB_DarkEnergy( a, mgcamb_par_cache, mgcamb_cache )
 		grhoa2 = this%grho_no_de(a) +  mgcamb_cache%grhov_t * a**2
