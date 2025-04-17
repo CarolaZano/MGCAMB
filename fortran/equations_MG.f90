@@ -2481,7 +2481,7 @@
 
     ! DL removing Carola's MG_flag=7
     !if (.not. MGDE_const .and. MG_flag /= 0 .and. MG_flag /= 7 .and. MGDE_pert)  then
-    if (.not. MGDE_const .and. MG_flag /= 0 and. MGDE_pert)  then
+    if (.not. MGDE_const .and. MG_flag /= 0 .and. MGDE_pert)  then
         call State%CP%DarkEnergy%PerturbedStressEnergy(dgrho_de, dgq_de, &
             a, dgq, dgrho, grho, grhov_t, w_MGDE, gpres_noDE, etak, &
             adotoa, k, 1.d0, ay, ayprime, EV%w_ix)
