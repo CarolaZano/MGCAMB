@@ -29,7 +29,13 @@ def get_results(params):
     :param params: :class:`.model.CAMBparams` instance
     :return: :class:`~.results.CAMBdata` instance
     """
+
+    print('in get results, params 1 =', params)
+
     res = CAMBdata()
+
+    print("in get results, res.Params AFTER CAMBDATA CALL =",res.Params)
+
     if _debug_params:
         print(params)
     res.calc_power_spectra(params)

@@ -16,7 +16,8 @@
     !> MGCAMB MOD START
 	Type(MGCAMB_timestep_cache) :: mgcamb_cache
 	!< MGCAMB MOD END
-    write(*,*) MG_flag
+    write(*,*) "MG_flag in dtauda=", MG_flag
+    write(*,*) "CAMBdata dtauda=", this%CP%MG_flag
 	!> MGCAMB MOD START: modifying the background
 	if ( MG_flag == 0) then
     	call this%CP%DarkEnergy%BackgroundDensityAndPressure(this%grhov, a, grhov_t)
@@ -2336,7 +2337,9 @@
 
     !> MGCAMB MOD START: computing DE density in MGCAMB
     ! CAROLA
-    if ( MG_flag == 0 .or. MG_flag ==7) then !< default CAMB
+    ! DL: We allow the MG_flag for 4DEGB to pass to the second part of the statement (else)
+    ! with the other MG_flags for non GR. If DE_flag=0, then we will stil get LCDM back.
+    if ( MG_flag == 0) then !< default CAMB
         if (EV%is_cosmological_constant) then
             grhov_t = State%grhov * a2
             w_dark_energy_t = -1_dl
@@ -2362,7 +2365,9 @@
 
     !> MGCAMB MOD START: switch MG on according to the model (in model 7 GRtrans is replaced by a_star)
     tempmodel = 0
-    if ( MG_flag /= 0 .and. MG_flag /= 7 .and. a .ge. GRtrans ) then
+    ! DL removing Carola's MG_flag /= 7 addition
+    !if ( MG_flag /= 0 .and. MG_flag /= 7 .and. a .ge. GRtrans ) then
+    if ( MG_flag /= 0 .and. a .ge. GRtrans ) then
         tempmodel = MG_flag
     end if
     !< MGCAMB MOD END
@@ -2379,6 +2384,7 @@
     grhonu_t=0
 
     if (State%CP%Num_Nu_Massive > 0) then
+        ! DL: I don't think we need to change this but we should double check.
         call MassiveNuVars(EV,ay,a,grhonu_t,gpres_nu,dgrho_matter,dgq, wnu_arr)
     end if
 
@@ -2390,7 +2396,9 @@
     if (State%flat) then
         adotoa=sqrt(grho/3)
         cothxor=1._dl/tau
-    else if ( MG_flag == 0 .or. MG_flag == 7) then
+    ! DL: Removing Carola's MG_flag==7 flag here - we also want only flat models.    
+    !else if ( MG_flag == 0 .or. MG_flag == 7) then
+    else if ( MG_flag == 0 ) then
         adotoa=sqrt((grho+State%grhok)/3._dl)
         cothxor=1._dl/State%tanfunc(tau/State%curvature_radius)/State%curvature_radius
     else
@@ -2461,7 +2469,9 @@
     pb43=4._dl/3*photbar
 
     !> MGCMAB MOD START: perturb DE only in default CAMB
-    if (.not. EV%is_cosmological_constant .and. (MG_flag == 0 .or. MG_flag == 7))  then
+    ! DL removing Carola's MG_flag=7
+    !if (.not. EV%is_cosmological_constant .and. (MG_flag == 0 .or. MG_flag == 7))  then
+    if (.not. EV%is_cosmological_constant .and. MG_flag == 0)  then
         call State%CP%DarkEnergy%PerturbedStressEnergy(dgrho_de, dgq_de, &
             a, dgq, dgrho, grho, grhov_t, w_dark_energy_t, gpres_noDE, etak, &
             adotoa, k, EV%Kf(1), ay, ayprime, EV%w_ix)
@@ -2469,7 +2479,9 @@
         dgq = dgq + dgq_de
     end if
 
-    if (.not. MGDE_const .and. MG_flag /= 0 .and. MG_flag /= 7 .and. MGDE_pert)  then
+    ! DL removing Carola's MG_flag=7
+    !if (.not. MGDE_const .and. MG_flag /= 0 .and. MG_flag /= 7 .and. MGDE_pert)  then
+    if (.not. MGDE_const .and. MG_flag /= 0 and. MGDE_pert)  then
         call State%CP%DarkEnergy%PerturbedStressEnergy(dgrho_de, dgq_de, &
             a, dgq, dgrho, grho, grhov_t, w_MGDE, gpres_noDE, etak, &
             adotoa, k, 1.d0, ay, ayprime, EV%w_ix)
@@ -2700,10 +2712,14 @@
     !< MGCAMB MOD END
 
     !> MGCAMB MOD START: DE perturbed only if not MG
-    if (.not. EV%is_cosmological_constant .and. (MG_flag == 0 .or. MG_flag ==7)) &
+    ! DL removing Carola's MG_flag 7 comments
+    !if (.not. EV%is_cosmological_constant .and. (MG_flag == 0 .or. MG_flag ==7)) &
+    if (.not. EV%is_cosmological_constant .and. MG_flag == 0) &
         call State%CP%DarkEnergy%PerturbationEvolve(ayprime, w_dark_energy_t, &
         EV%w_ix, a, adotoa, k, z, ay)
-    if (.not. MGDE_const .and. MG_flag /= 0 .and. MG_flag /= 7 .and. MGDE_pert) &
+    ! DL removing Carola's MG_flag 7 comments
+    !if (.not. MGDE_const .and. MG_flag /= 0 .and. MG_flag /= 7 .and. MGDE_pert) &
+    if (.not. MGDE_const .and. MG_flag /= 0 .and. MGDE_pert) &
         call State%CP%DarkEnergy%PerturbationEvolve(ayprime, w_MGDE, &
         EV%w_ix, a, adotoa, k, z, ay)
      !< MGCAMB MOD END
@@ -2767,7 +2783,9 @@
     if (EV%TightCoupling) then
         !  ddota/a
         !> MGCAMB MOD START
-        if ( MG_flag == 0 .or. MG_flag == 7) then
+        ! DL removing Carola's MG_flag=7
+        !if ( MG_flag == 0 .or. MG_flag == 7) then
+        if ( MG_flag == 0) then
             gpres = gpres_noDE + w_dark_energy_t*grhov_t
             adotdota=(adotoa*adotoa-gpres)/2
         else
@@ -3116,8 +3134,9 @@
             end if
         end if
 		!>MGCAMB MOD START
-        if ((EV%is_cosmological_constant .and. (MG_flag == 0 .or. MG_flag == 7)) &
-            .or. ( MGDE_const .and. MG_flag /= 0 .and. MG_flag /= 7 .and. MGDE_pert)) then
+        ! DL removing Carola's MG_flag=7
+        if ((EV%is_cosmological_constant .and. MG_flag == 0) &
+            .or. ( MGDE_const .and. MG_flag /= 0 .and. MGDE_pert)) then
             dgrho_de=0
             dgq_de=0
         end if
@@ -3133,18 +3152,23 @@
         end if
 
         !> MGCAMB MOD START: modifying hte expansion history
-        if ( MG_flag == 0 .or. MG_flag == 7 ) then
+        ! DL removing Carola's MG_flag=7
+        !if ( MG_flag == 0 .or. MG_flag == 7 ) then
+        if ( MG_flag == 0) then
             gpres = gpres_noDE + w_dark_energy_t*grhov_t
         else
             gpres= gpres_noDE  + mgcamb_cache%gpresv_t
         end if
 
-		if(MG_flag == 0 .or. MG_flag == 7 ) then
+        ! DL removing Carola's MG_flag=7
+		!if(MG_flag == 0 .or. MG_flag == 7 ) then
+        if(MG_flag == 0 ) then
             diff_rhopi = pidot_sum - (4*dgpi+ dgpi_diff)*adotoa + &
                 State%CP%DarkEnergy%diff_rhopi_Add_Term(dgrho_de, dgq_de, grho, &
                 gpres, w_dark_energy_t, State%grhok, adotoa, &
                 EV%kf(1), k, grhov_t, z, k2, ayprime, ay, EV%w_ix)
-		else if(MG_flag /= 0 .and. MG_flag /= 7 .and. (.not. MGDE_const) .and. MGDE_pert) then
+		else if(MG_flag /= 0 .and. (.not. MGDE_const) .and. MGDE_pert) then
+        !else if(MG_flag /= 0 .and. MG_flag /= 7 .and. (.not. MGDE_const) .and. MGDE_pert) then
 			diff_rhopi = pidot_sum - (4*dgpi+ dgpi_diff)*adotoa + &
 				State%CP%DarkEnergy%diff_rhopi_Add_Term(dgrho_de, dgq_de, grho, &
 				gpres, w_MGDE, State%grhok, adotoa, &
@@ -3336,8 +3360,10 @@
 
                     call c_f_procpointer(CP%CustomSources%c_source_func,custom_sources_func)
 
+                    ! DL Removing Carola's MG_flag==7
                     !>MGCAMB MOD START
-					if(MG_flag==0 .or. MG_flag == 7) then
+					!if(MG_flag==0 .or. MG_flag == 7) then
+                    if(MG_flag==0) then
                         call custom_sources_func(EV%CustomSources, tau, a, adotoa, grho, gpres,w_dark_energy_t, cs2_de, &
                             grhob_t,grhor_t,grhoc_t,grhog_t,grhov_t,grhonu_t, &
                             k, etak, ayprime(ix_etak), phi, phidot, sigma, sigmadot, &

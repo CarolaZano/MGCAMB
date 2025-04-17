@@ -845,6 +845,8 @@
     integer i
     real(dl) :: a
 
+    write(*,*) "CAMBdata_HofzArr=", this%CP%MG_flag
+
     do i=1, n
         a = 1/(1+z(i))
         arr(i) = 1/(a**2*dtauda(this,a))

@@ -312,6 +312,7 @@ class CAMBdata(F2003Class):
             self._check_powers(params)
         if CAMBdata_gettransfers(byref(self), byref(params), byref(c_int(1 if only_transfers else 0)),
                                  byref(c_int(1 if only_time_sources else 0))):
+            print('here in CAMBdata gettransfer if statment')
             config.check_global_error('calc_transfer')
 
     def _check_powers(self, params=None):
@@ -329,6 +330,8 @@ class CAMBdata(F2003Class):
         :param params: optional :class:`~.model.CAMBparams` instance with parameters to use
 
         """
+        print('in calc power spectra')
+
         if params is not None:
             self.calc_transfers(params, only_transfers=False)
         else:
@@ -745,7 +748,10 @@ class CAMBdata(F2003Class):
         :return: k/h or k, z, PK, where kz and z are arrays of k/h or k and z respectively,
                  and PK[i,j] is the value at z[i], k[j]/h or k[j]
         """
+
+        print('here in get_linear_matter_power')
         if self.OnlyTransfers or params is not None or not have_power_spectra:
+            print('in if statment for calc_power_spectra')
             self.calc_power_spectra(params)
 
         num_k = c_int(0)
@@ -923,6 +929,8 @@ class CAMBdata(F2003Class):
 
     def get_matter_power_interpolator(self, nonlinear=True, var1=None, var2=None, hubble_units=True, k_hunit=True,
                                       return_z_k=False, log_interp=True, extrap_kmax=None, silent=False):
+        print('very beginning')
+        
         r"""
         Assuming transfers have been calculated, return a 2D spline interpolation object to evaluate matter
         power spectrum as function of z and k/h (or k). Uses self.Params.Transfer.PK_redshifts as the spline node
@@ -953,6 +961,8 @@ class CAMBdata(F2003Class):
                  that can be called with PK.P(z,kh) or PK(z,log(kh)) to get log matter power values.
                  If return_z_k=True, instead return interpolator, z, k where z, k are the grid used.
         """
+
+        print('at the beginning of get matter power interpolator')
 
         class PKInterpolator(RectBivariateSpline):
             islog: bool
@@ -992,6 +1002,7 @@ class CAMBdata(F2003Class):
                 else:
                     return self(z, np.log(kh))
 
+        print('here in get_matter_power_interpolator')
         assert self.Params.WantTransfer
         khs, zs, pk = self.get_linear_matter_power_spectrum(var1, var2, hubble_units, nonlinear=nonlinear)
         kh_max = khs[-1]
@@ -1485,6 +1496,8 @@ class CAMBdata(F2003Class):
         :param z: redshift
         :return: H(z)
         """
+        print('pars in h_of_z=', self.Params)
+
         if not np.isscalar(z):
             z = np.array(z, dtype=np.float64)
             arr = np.empty(z.shape)
