@@ -2184,6 +2184,7 @@
     else
         call EV%ThermoData%Values(tau,a,cs2,opacity)
     end if
+        
     a2=a*a
 
     etak=ay(ix_etak)

@@ -16,17 +16,17 @@
     !> MGCAMB MOD START
 	Type(MGCAMB_timestep_cache) :: mgcamb_cache
 	!< MGCAMB MOD END
-    write(*,*) "MG_flag in dtauda=", MG_flag
-    write(*,*) "CAMBdata dtauda=", this%CP%MG_flag
+    !write(*,*) "MG_flag in dtauda=", MG_flag
+    !write(*,*) "CAMBdata dtauda=", this%CP%MG_flag
 	!> MGCAMB MOD START: modifying the background
 	if ( MG_flag == 0) then
     	call this%CP%DarkEnergy%BackgroundDensityAndPressure(this%grhov, a, grhov_t)
 		grhoa2 = this%grho_no_de(a) +  grhov_t * a**2
-        write(*,*)'Im doing GR'
+        !write(*,*)'Im doing GR'
     else if (MG_flag == 7) then
         call this%CP%DarkEnergy%BackgroundDensityAndPressure(this%grhov, a, grhov_t)
         grhoa2 = this%grho_no_de_4DEGB(a) +  grhov_t * a**2
-        write(*,*)'Im doing 4DEGB'
+        !write(*,*)'Im doing 4DEGB'
 	else if( MG_flag /= 0 .and. MG_flag /= 7) then !< MGCAMB modifies the background as well
 		call MGCAMB_DarkEnergy( a, mgcamb_par_cache, mgcamb_cache )
 		grhoa2 = this%grho_no_de(a) +  mgcamb_cache%grhov_t * a**2
@@ -2248,7 +2248,7 @@
     !> MGCAMB MOD START
     use MGCAMB
     !< MGCAMB MOD END
-
+    
     implicit none
     type(EvolutionVars) EV
     integer n,nu_i
@@ -2296,6 +2296,10 @@
     real(dl) vc, vcdot 
 	real(dl) MGDE_ISW, w_MGDE   
 
+    ! CZ MOD START
+    real(dl) dphivardot, alphaCterm
+    ! CZ MOD END
+
     !> MGCAMB MOD START: adding MGCAMB parameters
     type(MGCAMB_timestep_cache) :: mgcamb_cache
     integer :: tempmodel
@@ -2314,7 +2318,7 @@
         call EV%ThermoData%Values(tau,a,cs2,opacity)
     end if
     a2=a*a
-
+    
     etak=ay(ix_etak)
 
     !  CDM variables
@@ -2418,6 +2422,18 @@
             clxr=-4*dz/k
             qr=-4._dl/3*z
             pir=0
+        ! CZ MOD START
+        else if (tempmodel == 7) then
+            ! CZ: TODO will need to add an equation for dphivardot, for now = 0 
+            dphivardot = 0
+            alphaCterm = State%CP%alphaC*(3*dphivardot/k2/k - 18*adotoa*0.5*dgq/k2/k/a2)
+            z = (0.5_dl*dgrho/k + etak + alphaCterm)/adotoa / (1+ 6*State%CP%alphaC/k2*a2)
+            dz = adotoa*z*(6*State%CP%alphaC/k2/a2 - 1) - 0.5_dl*dgrho/k - alphaCterm
+            
+            clxr=-4*dz/k
+            qr=-4._dl/3*z
+            pir=0
+        ! CZ MOD END
         else ! tempmodel /=0
          ! this is the old RSA..
             clxr=2*(grhoc_t*clxc+grhob_t*clxb)/3/k**2
@@ -2440,6 +2456,18 @@
                 dz= -adotoa*z - 0.5_dl*dgrho/k
                 clxg=-4*dz/k-4/k*opacity*(vb+z)
                 qg=-4._dl/3*z
+            ! CZ MOD START
+            else if (tempmodel == 7) then
+                ! CZ: TODO will need to add an equation for dphivardot, for now = 0 
+                dphivardot = 0
+                alphaCterm = State%CP%alphaC*(3*dphivardot/k2/k - 18*adotoa*0.5*dgq/k2/k/a2)
+                z = (0.5_dl*dgrho/k + etak + alphaCterm)/adotoa / (1+ 6*State%CP%alphaC/k2*a2)
+                dz = adotoa*z*(6*State%CP%alphaC/k2/a2 - 1) - 0.5_dl*dgrho/k - alphaCterm
+                
+                clxr=-4*dz/k
+                qr=-4._dl/3*z
+                pir=0
+            ! CZ MOD END
             else
                 clxg=clxr-4/k*opacity*(vb+z)
                 qg=qr
@@ -2491,7 +2519,8 @@
     !< MGCAMB MOD END
 
     !> MGCAMB MOD START: computing Z, sigma in MG
-    if ( tempmodel /= 0 ) then
+    ! CZ: added tempmodel /=7 condition
+    if ( tempmodel /= 0 .and. tempmodel /= 7) then
 
         ! 1. Filling the cache
 
@@ -2695,6 +2724,22 @@
 
         ayprime(ix_etak)= k*etadot
 
+    ! CZ MOD START
+    else if (tempmodel == 7) then
+        ! CZ: TODO will need to add an equation for dphivardot, for now = 0 
+        dphivardot = 0
+        alphaCterm = State%CP%alphaC*(3*dphivardot/k2/k - 18*adotoa*0.5*dgq/k2/k/a2)
+        z = (0.5_dl*dgrho/k + etak + alphaCterm)/adotoa / (1+ 6*State%CP%alphaC/k2*a2)
+        if (State%flat) then
+            !eta*k equation
+                sigma=(z+1.5_dl*dgq/k2)
+                ayprime(ix_etak)=0.5_dl*dgq
+        else
+            ! CZ: TODO will need to raise error flag
+            sigma=(z+1.5_dl*dgq/k2)/EV%Kf(1)
+            ayprime(ix_etak)=0.5_dl*dgq + State%curv*z
+        end if 
+    ! CZ MOD END
     else ! GR limit
         !  Get sigma (shear) and z from the constraints
         ! have to get z from eta for numerical stability
@@ -2709,6 +2754,13 @@
             ayprime(ix_etak)=0.5_dl*dgq + State%curv*z
         end if 
     end if 
+
+    ! CZ MOD START - need to add eq. for dphivardot, for now = 0
+    !dphivardot = 0
+    ! alphaCterm = State%CP%alphaC*(3*dphivardot/k2/k - 18*adotoa*0.5*dgq/k2/k/a2)
+    ! z = (0.5_dl*dgrho/k + etak + alphaCterm)/adotoa / (1+ 6*State%CP%alphaC/k2*a2)
+    ! dz = adotoa*z*(6*State%CP%alphaC/k2/a2 - 1) - 0.5_dl*dgrho/k - alphaCterm
+    ! CZ MOD END
     !< MGCAMB MOD END
 
     !> MGCAMB MOD START: DE perturbed only if not MG

@@ -1265,9 +1265,9 @@
         integer nu_i
     
         grhoa2 = this%grhok * a**2 + (this%grhoc + this%grhob) * a + (this%grhog + this%grhocrit*this%CP%alphaC) + this%grhornomass
-        write(*,*) 'value Neff equiv', this%CP%alphaC/(this%grhor/this%grhocrit)
-        write(*,*) 'value grhor, value Omegar', this%grhor, this%grhor/this%grhocrit
-        write(*,*) 'grhog, alpha term', this%grhog , this%grhocrit*this%CP%alphaC
+        !write(*,*) 'value Neff equiv', this%CP%alphaC/(this%grhor/this%grhocrit)
+        !write(*,*) 'value grhor, value Omegar', this%grhor, this%grhor/this%grhocrit
+        !write(*,*) 'grhog, alpha term', this%grhog , this%grhocrit*this%CP%alphaC
         
         if (this%CP%Num_Nu_massive /= 0) then
             !Get massive neutrino density relative to massless
