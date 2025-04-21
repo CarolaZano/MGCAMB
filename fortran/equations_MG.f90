@@ -2398,8 +2398,14 @@
 
     !> MGCAMB MOD START: MGCAMB working only with flat models
     if (State%flat) then
-        adotoa=sqrt(grho/3)
-        cothxor=1._dl/tau
+        ! DL mod start: adjust for 4DEGB change to background. 
+        if ( MG_flag /=7) then
+            adotoa=sqrt(grho/3)
+            cothxor=1._dl/tau
+        else ! MG_flag=7 (4DEGB case)
+            adotoa= 1./(a**2*dtauda(State,a)) ! This tau is like conformal time. 
+            cothxor=1._dl/tau ! This tau is like optical depth
+        end if
     ! DL: Removing Carola's MG_flag==7 flag here - we also want only flat models.    
     !else if ( MG_flag == 0 .or. MG_flag == 7) then
     else if ( MG_flag == 0 ) then
@@ -2837,10 +2843,12 @@
         !> MGCAMB MOD START
         ! DL removing Carola's MG_flag=7
         !if ( MG_flag == 0 .or. MG_flag == 7) then
+
         if ( MG_flag == 0) then
             gpres = gpres_noDE + w_dark_energy_t*grhov_t
             adotdota=(adotoa*adotoa-gpres)/2
         else
+            ! DL TO DO: double check the adotdota for changes in 4DEGB
             gpres=gpres_noDE + mgcamb_cache%gpresv_t
             adotdota=(adotoa*adotoa-gpres)/2
         end if
