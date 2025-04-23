@@ -2426,6 +2426,10 @@
             pir=0
         else ! tempmodel /=0
          ! this is the old RSA..
+         ! DL: 'old RSA' is explained in MGCAMB paper as being implemented
+         ! from an older version of CAMB because they don't have access to 
+         ! the ii Einstein equation. But we do, so we will probably use a version 
+         ! of the previous if statement. 
             clxr=2*(grhoc_t*clxc+grhob_t*clxb)/3/k**2
             qr= clxr*k/sqrt((grhoc_t+grhob_t)/3)*(2/3._dl)
             pir=0
