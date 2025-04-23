@@ -16,17 +16,17 @@
     !> MGCAMB MOD START
 	Type(MGCAMB_timestep_cache) :: mgcamb_cache
 	!< MGCAMB MOD END
-    write(*,*) "MG_flag in dtauda=", MG_flag
-    write(*,*) "CAMBdata dtauda=", this%CP%MG_flag
+    !write(*,*) "MG_flag in dtauda=", MG_flag
+    !write(*,*) "CAMBdata dtauda=", this%CP%MG_flag
 	!> MGCAMB MOD START: modifying the background
 	if ( MG_flag == 0) then
     	call this%CP%DarkEnergy%BackgroundDensityAndPressure(this%grhov, a, grhov_t)
 		grhoa2 = this%grho_no_de(a) +  grhov_t * a**2
-        write(*,*)'Im doing GR'
+        !write(*,*)'Im doing GR'
     else if (MG_flag == 7) then
         call this%CP%DarkEnergy%BackgroundDensityAndPressure(this%grhov, a, grhov_t)
         grhoa2 = this%grho_no_de_4DEGB(a) +  grhov_t * a**2
-        write(*,*)'Im doing 4DEGB'
+        !write(*,*)'Im doing 4DEGB'
 	else if( MG_flag /= 0 .and. MG_flag /= 7) then !< MGCAMB modifies the background as well
 		call MGCAMB_DarkEnergy( a, mgcamb_par_cache, mgcamb_cache )
 		grhoa2 = this%grho_no_de(a) +  mgcamb_cache%grhov_t * a**2
@@ -62,12 +62,18 @@
     logical, parameter :: plot_evolve = .false. !for outputing time evolution
     !> MGCAMB MOD START: adding a new variable vc
     ! integer, parameter :: basic_num_eqns = 4
-    integer, parameter :: basic_num_eqns = 5
+    !integer, parameter :: basic_num_eqns = 5
     !< MGCAMB MOD END
+    ! CZ MOD START: adding new variables dphi_4DEGB + its derivative
+    integer, parameter :: basic_num_eqns = 7
+    ! CZ MOD END
     integer, parameter :: ix_etak=1, ix_clxc=2, ix_clxb=3, ix_vb=4 !Scalar array indices for each quantity
     !> MGCAMB MOD START:
     integer, parameter :: ix_vc = 5
     !< MGCAMB MOD END
+    ! CZ MOD START: index dphi_4DEGB = 6, index for the field's derivative = 7
+    integer, parameter :: ix_dphi4DEGB = 6
+    ! CZ MOD END
     integer, parameter :: ixt_H = 1, ixt_shear = 2 !tensor indices
 
     logical :: DoTensorNeutrinos = .true.
@@ -1853,9 +1859,15 @@
     !> MGCAMB MOD START: adding index for vc
     integer, parameter :: i_vc = 13
     !< MDGCAMB MOD END
+    ! CZ MOD START
+    integer, parameter :: i_dphi4DEGB = 14
+    ! CZ MOD END
     !> MGCAMB MOD START
-    integer, parameter :: i_max = i_vc
+    !integer, parameter :: i_max = i_vc
     !< MDGCAMB MOD END
+    ! CZ MOD START
+    integer, parameter :: i_max = i_dphi4DEGB + 1
+    ! CZ MOD END
     real(dl) initv(6,1:i_max), initvec(1:i_max)
 
     nullify(EV%OutputTransfer) !Should not be needed, but avoids issues in ifort 14
@@ -1945,6 +1957,11 @@
     !> MGCAMB MOD START
     initv(1,i_vc)= 0._dl
     !< MDGCAMB MOD END
+    ! CZ MOD START - TODO NEED TO MODIFY INITIAL CONDITION to be non-zero below
+    ! TODO: need to maybe add a flag and modify all of the ICs for 4DEGB. Discuss with Danielle.
+    initv(1,i_dphi4DEGB)=1._dl
+    initv(1,i_dphi4DEGB+1)=0._dl
+    ! CZ MOD END
 
     if (CP%Scalar_initial_condition/= initial_adiabatic) then
         !CDM isocurvature
@@ -1962,6 +1979,10 @@
         !> MGCAMB MOD START
         initv(2,i_vc)= 0._dl
         !< MGCAMB MOD END
+        ! CZ MOD START
+        initv(2,i_dphi4DEGB)=0._dl
+        initv(2,i_dphi4DEGB+1)=0._dl
+        ! CZ MOD END
 
         !Baryon isocurvature
         if (Rc==0) call MpiStop('Isocurvature initial conditions assume non-zero dark matter')
@@ -1985,6 +2006,10 @@
         !> MGCAMB MOD START
         initv(4,i_vc) = 0._dl
 		!< MGCAMB MOD END
+        ! CZ MOD START
+        initv(4,i_dphi4DEGB)=0._dl
+        initv(4,i_dphi4DEGB+1)=0._dl
+        ! CZ MOD END
 
         !neutrino isocurvature velocity mode
 
@@ -2002,6 +2027,10 @@
 		!> MGCAMB MOD START
 		initv(5,i_vc) = 0._dl
 		!< MGCAMB MOD END 
+        ! CZ MOD START
+        initv(5,i_dphi4DEGB)=0._dl
+        initv(5,i_dphi4DEGB+1)=0._dl
+        ! CZ MOD END
 
         !quintessence isocurvature mode
     end if
@@ -2030,6 +2059,11 @@
     !> MGCAMB MOD START: CDM velocity
     y(ix_vc) = InitVec(i_vc) 
     !< MDGCAMB MOD END
+
+    ! CZ MOD START: 4DEGB scalar field
+    y(ix_dphi4DEGB) = InitVec(i_dphi4DEGB)
+    y(ix_dphi4DEGB + 1) = InitVec(i_dphi4DEGB + 1)
+    ! CZ MOD END
 
     !  Photons
     y(EV%g_ix)=InitVec(i_clxg)
@@ -2248,7 +2282,7 @@
     !> MGCAMB MOD START
     use MGCAMB
     !< MGCAMB MOD END
-
+    
     implicit none
     type(EvolutionVars) EV
     integer n,nu_i
@@ -2296,6 +2330,10 @@
     real(dl) vc, vcdot 
 	real(dl) MGDE_ISW, w_MGDE   
 
+    ! CZ MOD START
+    real(dl) dphi4DEGB, dphiprime4DEGB, alphaCterm
+    ! CZ MOD END
+
     !> MGCAMB MOD START: adding MGCAMB parameters
     type(MGCAMB_timestep_cache) :: mgcamb_cache
     integer :: tempmodel
@@ -2327,6 +2365,11 @@
     !> MGCAMB MOD START:
     vc = ay(ix_vc)
     !< MGCAMB MOD END
+
+    ! CZ MOD START
+    dphi4DEGB = ay(ix_dphi4DEGB)
+    dphiprime4DEGB = ay(ix_dphi4DEGB + 1)
+    ! CZ MOD END
 
     !  Compute expansion rate from: grho 8*pi*rho*a**2
 
@@ -2424,6 +2467,17 @@
             clxr=-4*dz/k
             qr=-4._dl/3*z
             pir=0
+        ! CZ MOD START
+        else if (tempmodel == 7) then
+            ! CZ TODO: need to have correct equation below
+            alphaCterm = State%CP%alphaC*(3*dphiprime4DEGB/k2/k - 18*adotoa*0.5*dgq/k2/k/a2)
+            z = (0.5_dl*dgrho/k + etak + alphaCterm)/adotoa / (1+ 6*State%CP%alphaC/k2*a2)
+            dz = -adotoa*z - 0.5_dl*dgrho/k
+            
+            clxr=-4*dz/k
+            qr=-4._dl/3*z
+            pir=0
+        ! CZ MOD END
         else ! tempmodel /=0
          ! this is the old RSA..
          ! DL: 'old RSA' is explained in MGCAMB paper as being implemented
@@ -2450,6 +2504,17 @@
                 dz= -adotoa*z - 0.5_dl*dgrho/k
                 clxg=-4*dz/k-4/k*opacity*(vb+z)
                 qg=-4._dl/3*z
+            ! CZ MOD START
+            else if (tempmodel == 7) then
+                ! CZ TODO: need to have correct equation below
+                alphaCterm = State%CP%alphaC*(3*dphiprime4DEGB/k2/k - 18*adotoa*0.5*dgq/k2/k/a2)
+                z = (0.5_dl*dgrho/k + etak + alphaCterm)/adotoa / (1+ 6*State%CP%alphaC/k2*a2)
+                dz = -adotoa*z - 0.5_dl*dgrho/k
+                
+                clxr=-4*dz/k
+                qr=-4._dl/3*z
+                pir=0
+            ! CZ MOD END
             else
                 clxg=clxr-4/k*opacity*(vb+z)
                 qg=qr
@@ -2501,7 +2566,8 @@
     !< MGCAMB MOD END
 
     !> MGCAMB MOD START: computing Z, sigma in MG
-    if ( tempmodel /= 0 ) then
+    ! CZ: added tempmodel /=7 condition
+    if ( tempmodel /= 0 .and. tempmodel /= 7) then
 
         ! 1. Filling the cache
 
@@ -2705,6 +2771,21 @@
 
         ayprime(ix_etak)= k*etadot
 
+    ! CZ MOD START
+    else if (tempmodel == 7) then
+        ! CZ TODO: need to have correct equation below
+        alphaCterm = State%CP%alphaC*(3*dphiprime4DEGB/k2/k - 18*adotoa*0.5*dgq/k2/k/a2)
+        z = (0.5_dl*dgrho/k + etak + alphaCterm)/adotoa / (1+ 6*State%CP%alphaC/k2*a2)
+        if (State%flat) then
+            !eta*k equation
+                sigma=(z+1.5_dl*dgq/k2)
+                ayprime(ix_etak)=0.5_dl*dgq
+        else
+            ! CZ: TODO will need to raise error flag
+            sigma=(z+1.5_dl*dgq/k2)/EV%Kf(1)
+            ayprime(ix_etak)=0.5_dl*dgq + State%curv*z
+        end if 
+    ! CZ MOD END
     else ! GR limit
         !  Get sigma (shear) and z from the constraints
         ! have to get z from eta for numerical stability
@@ -2719,6 +2800,13 @@
             ayprime(ix_etak)=0.5_dl*dgq + State%curv*z
         end if 
     end if 
+
+    ! CZ MOD START
+    ! CZ TODO: need to have correct equation below
+    ! alphaCterm = State%CP%alphaC*(3*dphiprime4DEGB/k2/k - 18*adotoa*0.5*dgq/k2/k/a2)
+    ! z = (0.5_dl*dgrho/k + etak + alphaCterm)/adotoa / (1+ 6*State%CP%alphaC/k2*a2)
+    ! dz = adotoa*z*(6*State%CP%alphaC/k2/a2 - 1) - 0.5_dl*dgrho/k - alphaCterm
+    ! CZ MOD END
     !< MGCAMB MOD END
 
     !> MGCAMB MOD START: DE perturbed only if not MG
@@ -2915,6 +3003,11 @@
             endif
         end if
     end if
+
+    ! CZ MOD START: TODO change, for now SHO only 
+    ayprime(ix_dphi4DEGB) = dphiprime4DEGB
+    ayprime(ix_dphi4DEGB+1) = -k2*dphi4DEGB/3
+    ! CZ MOD END
 
     if (.not. EV%no_nu_multpoles) then
         !  Massless neutrino equations of motion.
